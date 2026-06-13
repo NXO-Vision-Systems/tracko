@@ -37,11 +37,10 @@ const REVEAL_CONTAINER = {
   show: { transition: { staggerChildren: 0.13, delayChildren: 0.05 } },
 };
 const REVEAL_ITEM = {
-  hidden: { opacity: 0, y: 22, filter: "blur(6px)" },
+  hidden: { opacity: 0, y: 22 },
   show: {
     opacity: 1,
     y: 0,
-    filter: "blur(0px)",
     transition: { duration: 0.6, ease: [0.16, 1, 0.3, 1] as const },
   },
 };

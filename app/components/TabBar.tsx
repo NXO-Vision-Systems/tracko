@@ -98,9 +98,9 @@ export default function TabBar({ active, onChange }: TabBarProps) {
         {showPlayer ? (
           <motion.div 
             key="player"
-            initial={{ opacity: 0, filter: "blur(4px)" }}
-            animate={{ opacity: 1, filter: "blur(0px)" }}
-            exit={{ opacity: 0, filter: "blur(4px)" }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
             transition={{ duration: 0.3 }}
             className="flex items-center w-full gap-3 py-2 cursor-pointer"
             onPointerDown={startLongPress}
@@ -162,9 +162,9 @@ export default function TabBar({ active, onChange }: TabBarProps) {
         ) : (
           <motion.div 
             key="tabs"
-            initial={{ opacity: 0, filter: "blur(4px)" }}
-            animate={{ opacity: 1, filter: "blur(0px)" }}
-            exit={{ opacity: 0, filter: "blur(4px)" }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
             transition={{ duration: 0.3 }}
             className="flex items-center h-full w-full"
             style={{ justifyContent: isScrolling ? 'center' : 'space-between', gap: isScrolling ? '8px' : '0' }}

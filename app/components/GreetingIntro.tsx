@@ -38,20 +38,20 @@ export default function GreetingIntro({ onDone }: { onDone: () => void }) {
       <motion.div
         className="relative text-center"
         initial={{ y: 0 }}
-        exit={{ y: -210, scale: 0.52, opacity: 0, filter: "blur(2px)" }}
+        exit={{ y: -210, scale: 0.52, opacity: 0 }}
         transition={{ duration: 0.65, ease: EASE }}
       >
         <motion.div
-          initial={{ opacity: 0, y: 22, filter: "blur(8px)" }}
-          animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+          initial={{ opacity: 0, y: 22 }}
+          animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, ease: EASE }}
           className="text-2xl font-semibold tracking-tight text-white/70"
         >
           {greeting},
         </motion.div>
         <motion.div
-          initial={{ opacity: 0, y: 18, filter: "blur(10px)" }}
-          animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+          initial={{ opacity: 0, y: 18 }}
+          animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.9, delay: 0.28, ease: EASE }}
           className="text-5xl font-black tracking-tighter mt-1 drop-shadow-[0_0_24px_rgba(255,255,255,0.18)]"
           style={{

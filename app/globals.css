@@ -1,5 +1,10 @@
 @import "tailwindcss";
 
+html, body {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
 @layer components {
   .phone-shell {
     @apply relative mx-auto w-full max-w-[428px] h-full overflow-hidden bg-black text-white shadow-[0_0_50px_rgba(0,0,0,0.5)];
@@ -7,10 +12,11 @@
 
   .scroll-content {
     @apply h-full w-full overflow-y-auto overflow-x-hidden pb-[calc(10rem+env(safe-area-inset-bottom))] px-4;
+    -webkit-overflow-scrolling: touch;
     -ms-overflow-style: none;
-    /* IE and Edge */
     scrollbar-width: none;
-    /* Firefox */
+    transform: translate3d(0, 0, 0);
+    will-change: transform;
   }
 
   .scroll-content::-webkit-scrollbar {
