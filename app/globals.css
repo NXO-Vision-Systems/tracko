@@ -1,0 +1,90 @@
+@import "tailwindcss";
+
+@layer components {
+  .phone-shell {
+    @apply relative mx-auto w-full max-w-[428px] h-full overflow-hidden bg-black text-white shadow-[0_0_50px_rgba(0,0,0,0.5)];
+  }
+
+  .scroll-content {
+    @apply h-full w-full overflow-y-auto overflow-x-hidden pb-[calc(10rem+env(safe-area-inset-bottom))] px-4;
+    -ms-overflow-style: none;
+    /* IE and Edge */
+    scrollbar-width: none;
+    /* Firefox */
+  }
+
+  .scroll-content::-webkit-scrollbar {
+    display: none;
+    /* Chrome/Safari/Webkit */
+  }
+
+  .app-header {
+    @apply flex items-center justify-between py-4 pt-[calc(1rem+env(safe-area-inset-top))] sticky top-0 z-30 bg-black/80 backdrop-blur-md -mx-4 px-4;
+  }
+
+  .app-logo {
+    @apply flex items-center gap-2 text-lg font-bold tracking-tight;
+  }
+
+  .header-actions {
+    @apply flex items-center gap-3;
+  }
+
+  .header-btn {
+    @apply relative text-white/70 hover:text-white transition-colors p-1;
+  }
+
+  .section {
+    @apply mb-8;
+  }
+
+  .section-header {
+    @apply mb-4 flex items-center justify-between;
+  }
+
+  .section-title {
+    @apply text-xl font-bold tracking-tight text-white/90;
+  }
+}
+
+@layer utilities {
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
+
+/* VS Code iPhone Simulator Overrides */
+.in-simulator nextjs-portal {
+  display: none !important;
+}
+
+.in-simulator .app-header {
+  padding-top: calc(1rem + 28px) !important;
+}
+
+.in-simulator .scroll-content {
+  padding-bottom: calc(10rem + 34px) !important;
+}
+
+/* Universal safe-area top padding for pages without headers */
+.safe-pt {
+  padding-top: calc(2rem + env(safe-area-inset-top));
+}
+
+.in-simulator .safe-pt {
+  padding-top: calc(2rem + 28px) !important;
+}
+
+/* Universal safe-area bottom padding */
+.safe-pb {
+  padding-bottom: calc(1.5rem + env(safe-area-inset-bottom));
+}
+
+.in-simulator .safe-pb {
+  padding-bottom: calc(1.5rem + 34px) !important;
+}
