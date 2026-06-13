@@ -1,8 +1,8 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.noxofy.app',
-  appName: 'Noxofy',
+  appId: 'com.tracko.app',
+  appName: 'Tracko',
   webDir: 'out',
   server: {
     url: 'https://tracko-nine.vercel.app',
