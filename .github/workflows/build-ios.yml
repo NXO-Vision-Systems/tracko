@@ -1,30 +1,18 @@
 name: Build iOS App
 
-
-
-
 on:
   push:
     branches: [ main, master ]
   workflow_dispatch:
-
-
-
 
 jobs:
   build:
     name: Build unsigned IPA
     runs-on: macos-latest
 
-
-
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
-
-
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -32,26 +20,14 @@ jobs:
           node-version: 22
           cache: 'npm'
 
-
-
-
       - name: Install dependencies
         run: npm ci --legacy-peer-deps || npm install --legacy-peer-deps
-
-
-
 
       - name: Create dummy out folder
         run: mkdir -p out
 
-
-
-
       - name: Sync Capacitor
         run: npx cap sync ios
-
-
-
 
       - name: Build Xcode Project
         run: |
@@ -76,3 +52,10 @@ jobs:
           fi
           echo "Found App.app at: $APP_PATH"
           cp -r "$APP_PATH" Payload/Noxofy.app
+          zip -r Noxofy.ipa Payload
+          
+      - name: Upload IPA Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Noxofy-IPA
+          path: Noxofy.ipa
