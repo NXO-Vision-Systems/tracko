@@ -51,11 +51,11 @@ jobs:
             exit 1
           fi
           echo "Found App.app at: $APP_PATH"
-          cp -r "$APP_PATH" Payload/Noxofy.app
-          zip -r Noxofy.ipa Payload
+          cp -r "$APP_PATH" Payload/Tracko.app
+          zip -r Tracko.ipa Payload
           
       - name: Upload IPA Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Noxofy-IPA
-          path: Noxofy.ipa
+          name: Tracko-IPA
+          path: Tracko.ipa
