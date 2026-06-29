@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { searchYouTube } from "@/lib/youtube";
+import ytdl from "@distube/ytdl-core";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -21,6 +22,19 @@ export async function GET(request: Request) {
       return NextResponse.json({ url: null }, { status: 404 });
     }
 
+    try {
+      const info = await ytdl.getInfo(video.videoId);
+      const format = ytdl.chooseFormat(info.formats, { filter: "audioonly", quality: "highestaudio" });
+      
+      if (format && format.url) {
+        const proxyUrl = `/api/stream?url=${encodeURIComponent(format.url)}`;
+        return NextResponse.json({ url: proxyUrl });
+      }
+    } catch (ytdlError) {
+      console.warn("ytdl-core resolution failed, falling back to YouTube watch URL:", ytdlError);
+    }
+
+    // Fallback to watch URL
     return NextResponse.json({ url: video.url });
   } catch (error) {
     console.error("Resolve API Error:", error);

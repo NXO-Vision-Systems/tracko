@@ -100,6 +100,14 @@ export default function AudioEngine() {
         src={resolvedUrl}
         playing={isPlaying && !isResolving}
         volume={volume}
+        config={{
+          file: {
+            forceAudio: true,
+            attributes: {
+              preload: "auto",
+            },
+          },
+        }}
         onTimeUpdate={(e: SyntheticEvent<HTMLVideoElement>) => {
           setProgress(e.currentTarget.currentTime);
         }}
