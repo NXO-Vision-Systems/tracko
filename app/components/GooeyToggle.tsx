@@ -1,7 +1,5 @@
 "use client";
 
-import { useRef, useEffect, useState } from "react";
-
 interface GooeyToggleProps {
   segments: { label: string; value: string }[];
   value: string;
@@ -10,95 +8,11 @@ interface GooeyToggleProps {
 
 export default function GooeyToggle({ segments, value, onChange }: GooeyToggleProps) {
   const activeIndex = segments.findIndex((s) => s.value === value);
-  const shaderRef = useRef<HTMLDivElement>(null);
-  const shaderMount = useRef<unknown>(null);
-  const [isHovered, setIsHovered] = useState(false);
 
   // Calculate segment width percentage
   const segmentPercent = 100 / segments.length;
 
-  useEffect(() => {
-    const styleId = "shader-canvas-style-toggle";
-    if (!document.getElementById(styleId)) {
-      const style = document.createElement("style");
-      style.id = styleId;
-      style.textContent = `
-        .shader-container-toggle canvas {
-          width: 100% !important;
-          height: 100% !important;
-          display: block !important;
-          position: absolute !important;
-          top: 0 !important;
-          left: 0 !important;
-          border-radius: inherit !important;
-        }
-      `;
-      document.head.appendChild(style);
-    }
-
-    const loadShader = async () => {
-      try {
-        const { liquidMetalFragmentShader, ShaderMount } = await import("@paper-design/shaders");
-
-        if (shaderRef.current && !shaderMount.current) {
-          shaderMount.current = new ShaderMount(
-            shaderRef.current,
-            liquidMetalFragmentShader,
-            {
-              u_repetition: 4,
-              u_softness: 0.5,
-              u_shiftRed: 0.3,
-              u_shiftBlue: 0.3,
-              u_distortion: 0,
-              u_contour: 0,
-              u_angle: 45,
-              u_scale: 8,
-              u_shape: 0,
-              u_offsetX: 0.1,
-              u_offsetY: -0.1,
-            },
-            undefined,
-            0.6
-          );
-        }
-      } catch (error) {
-        console.error("[GooeyToggle] Failed to load shader:", error);
-      }
-    };
-
-    loadShader();
-
-    return () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const mount = shaderMount.current as any;
-      if (mount?.destroy) {
-        mount.destroy();
-        shaderMount.current = null;
-      }
-    };
-  }, []);
-
-  // Speed up shader on hover
-  useEffect(() => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const mount = shaderMount.current as any;
-    if (mount?.setSpeed) {
-      mount.setSpeed(isHovered ? 1.2 : 0.6);
-    }
-  }, [isHovered]);
-
-  const handleClick = (index: number, val: string) => {
-    // Burst animation on click
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const mount = shaderMount.current as any;
-    if (mount?.setSpeed) {
-      mount.setSpeed(2.4);
-      setTimeout(() => {
-        if (mount?.setSpeed) {
-          mount.setSpeed(isHovered ? 1.2 : 0.6);
-        }
-      }, 300);
-    }
+  const handleClick = (val: string) => {
     onChange(val);
   };
 
@@ -112,18 +26,12 @@ export default function GooeyToggle({ segments, value, onChange }: GooeyTogglePr
           border: "1px solid rgba(255,255,255,0.08)",
           overflow: "hidden",
           background: "#0a0a0a",
-          boxShadow: isHovered
-            ? "0px 0px 0px 1px rgba(0,0,0,0.4), 0px 12px 6px 0px rgba(0,0,0,0.05), 0px 8px 5px 0px rgba(0,0,0,0.1), 0px 4px 4px 0px rgba(0,0,0,0.15), 0px 1px 2px 0px rgba(0,0,0,0.2)"
-            : "0px 0px 0px 1px rgba(0,0,0,0.3), 0px 20px 12px 0px rgba(0,0,0,0.08), 0px 9px 9px 0px rgba(0,0,0,0.12), 0px 2px 5px 0px rgba(0,0,0,0.15)",
+          boxShadow: "0 12px 24px rgba(0,0,0,0.28), inset 0 1px 0 rgba(255,255,255,0.06)",
           transition: "box-shadow 0.3s ease",
         }}
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
       >
-        {/* Liquid Metal Shader Background */}
+        {/* Static metallic background avoids keeping a WebGL canvas alive. */}
         <div
-          ref={shaderRef}
-          className="shader-container-toggle"
           style={{
             position: "absolute",
             top: 3,
@@ -131,8 +39,8 @@ export default function GooeyToggle({ segments, value, onChange }: GooeyTogglePr
             right: 3,
             bottom: 3,
             borderRadius: 999,
-            overflow: "hidden",
-            opacity: 0.7,
+            background: "linear-gradient(115deg, #171717 0%, #383838 28%, #111 54%, #2b2b2b 78%, #0b0b0b 100%)",
+            opacity: 0.82,
             zIndex: 1,
             width: "calc(100% - 6px)",
             height: "calc(100% - 6px)"
@@ -183,14 +91,14 @@ export default function GooeyToggle({ segments, value, onChange }: GooeyTogglePr
 
         {/* Buttons */}
         <div style={{ position: "relative", display: "flex", height: "100%", zIndex: 10 }}>
-          {segments.map((seg, i) => (
+          {segments.map((seg) => (
             <button
               key={seg.value}
               type="button"
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                handleClick(i, seg.value);
+                handleClick(seg.value);
               }}
               style={{
                 flex: 1,

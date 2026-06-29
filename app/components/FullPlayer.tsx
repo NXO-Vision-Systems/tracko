@@ -5,12 +5,79 @@ import { usePlayerStore } from "@/store/usePlayerStore";
 import { useAppStore } from "@/store/useAppStore";
 import { getApiUrl } from "@/lib/api";
 
-export default function FullPlayer() {
-  const { currentTrack, isPlaying, isFullPlayerOpen, setFullPlayerOpen, togglePlay, playNext, playPrev, progress, duration, setProgress, seekTo, volume, setVolume } = usePlayerStore();
-  const { setActiveTab, setTargetArtist, setTargetArtistId } = useAppStore();
-  const shaderRef = useRef<HTMLDivElement>(null);
-  const shaderMount = useRef<unknown>(null);
+function formatTime(secs: number) {
+  const mins = Math.floor(secs / 60);
+  const remainder = Math.floor(secs % 60);
+  return `${mins}:${remainder.toString().padStart(2, "0")}`;
+}
 
+function ProgressPill() {
+  const progress = usePlayerStore((state) => state.progress);
+  const duration = usePlayerStore((state) => state.duration);
+  const percent = duration > 0 ? Math.min(100, (progress / duration) * 100) : 0;
+
+  return (
+    <div
+      className="h-full bg-white rounded-full shadow-[0_0_8px_rgba(255,255,255,0.8)]"
+      style={{ width: `${percent}%` }}
+    />
+  );
+}
+
+function PlaybackProgress() {
+  const progress = usePlayerStore((state) => state.progress);
+  const duration = usePlayerStore((state) => state.duration);
+  const setProgress = usePlayerStore((state) => state.setProgress);
+  const seekTo = usePlayerStore((state) => state.seekTo);
+  const percent = duration > 0 ? Math.min(100, (progress / duration) * 100) : 0;
+
+  return (
+    <div className="w-full flex flex-col items-center gap-1 mb-5 group">
+      <div className="w-full relative h-8 flex items-center cursor-pointer">
+        <div className="absolute left-0 right-0 h-2 rounded-full bg-black/55 border border-white/10 overflow-hidden pointer-events-none">
+          <div
+            className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-white/40 to-white"
+            style={{ width: `${percent}%` }}
+          />
+        </div>
+        <div
+          className="absolute h-3.5 w-3.5 bg-white rounded-full shadow-[0_0_10px_rgba(255,255,255,0.8)] pointer-events-none z-20"
+          style={{ left: `calc(${percent}% - 7px)` }}
+        />
+        <input
+          type="range"
+          min={0}
+          max={duration || 0}
+          step={0.1}
+          value={progress}
+          onChange={(event) => {
+            const value = Number(event.target.value);
+            setProgress(value);
+            seekTo(value);
+          }}
+          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer touch-none z-30"
+          aria-label="Playback position"
+        />
+      </div>
+      <div className="w-full flex justify-between text-xs font-medium text-white/50 tracking-wider px-1">
+        <span>{formatTime(progress)}</span>
+        <span>{formatTime(duration)}</span>
+      </div>
+    </div>
+  );
+}
+
+export default function FullPlayer() {
+  const currentTrack = usePlayerStore((state) => state.currentTrack);
+  const isPlaying = usePlayerStore((state) => state.isPlaying);
+  const isFullPlayerOpen = usePlayerStore((state) => state.isFullPlayerOpen);
+  const setFullPlayerOpen = usePlayerStore((state) => state.setFullPlayerOpen);
+  const togglePlay = usePlayerStore((state) => state.togglePlay);
+  const playNext = usePlayerStore((state) => state.playNext);
+  const playPrev = usePlayerStore((state) => state.playPrev);
+  const volume = usePlayerStore((state) => state.volume);
+  const setVolume = usePlayerStore((state) => state.setVolume);
+  const { setActiveTab, setTargetArtist, setTargetArtistId } = useAppStore();
   // States for interactive controls
   const [isShuffle, setIsShuffle] = useState(false);
   const [repeatMode, setRepeatMode] = useState(0); // 0: off, 1: all, 2: one
@@ -92,13 +159,13 @@ export default function FullPlayer() {
 
   useEffect(() => {
     let interval: NodeJS.Timeout;
-    if (isPlaying && isFullPlayerOpen) {
+    if (isPlaying && isFullPlayerOpen && isMicActive) {
       interval = setInterval(() => {
-        setCurrentTime((prev) => (prev + 0.1) % 40); // loop every 40s
-      }, 100);
+        setCurrentTime((prev) => (prev + 0.25) % 40); // loop every 40s
+      }, 250);
     }
     return () => clearInterval(interval);
-  }, [isPlaying, isFullPlayerOpen]);
+  }, [isPlaying, isFullPlayerOpen, isMicActive]);
 
   const MOCK_LYRICS = [
     { time: 0, text: "Wait for it..." },
@@ -128,92 +195,13 @@ export default function FullPlayer() {
     }
   }, [activeLyricIndex, isMicActive]);
 
-  useEffect(() => {
-    const styleId = "shader-canvas-style-fullplayer";
-    if (!document.getElementById(styleId)) {
-      const style = document.createElement("style");
-      style.id = styleId;
-      style.textContent = `
-        .shader-container-fullplayer canvas {
-          width: 100% !important;
-          height: 100% !important;
-          display: block !important;
-          position: absolute !important;
-          top: 0 !important;
-          left: 0 !important;
-          border-radius: inherit !important;
-        }
-      `;
-      document.head.appendChild(style);
-    }
-
-    const loadShader = async () => {
-      try {
-        const { liquidMetalFragmentShader, ShaderMount } = await import("@paper-design/shaders");
-
-        if (shaderRef.current && !shaderMount.current) {
-          shaderMount.current = new ShaderMount(
-            shaderRef.current,
-            liquidMetalFragmentShader,
-            {
-              u_repetition: 4,
-              u_softness: 0.5,
-              u_shiftRed: 0.3,
-              u_shiftBlue: 0.3,
-              u_distortion: 0,
-              u_contour: 0,
-              u_angle: 45,
-              u_scale: 8,
-              u_shape: 0,
-              u_offsetX: 0.1,
-              u_offsetY: -0.1,
-            },
-            undefined,
-            0.6
-          );
-        }
-      } catch (error) {
-        console.error("[FullPlayer] Failed to load shader:", error);
-      }
-    };
-
-    if (isFullPlayerOpen) {
-      loadShader();
-    }
-
-    return () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const mount = shaderMount.current as any;
-      if (mount?.destroy) {
-        mount.destroy();
-        shaderMount.current = null;
-      }
-    };
-  }, [isFullPlayerOpen]);
-
-  useEffect(() => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const mount = shaderMount.current as any;
-    if (mount?.setSpeed) {
-      mount.setSpeed(isPlaying ? 1.2 : 0.4);
-    }
-  }, [isPlaying]);
-
-  const progressPercent = duration > 0 ? (progress / duration) * 100 : 0;
-
-  const formatTime = (secs: number) => {
-    const mins = Math.floor(secs / 60);
-    const remainder = Math.floor(secs % 60);
-    return `${mins}:${remainder.toString().padStart(2, '0')}`;
-  };
-
   return (
     <AnimatePresence>
       {isFullPlayerOpen && currentTrack && (
         <motion.div
-          initial={{ y: "100%", opacity: 0, filter: "blur(10px)" }}
-          animate={{ y: 0, opacity: 1, filter: "blur(0px)" }}
-          exit={{ y: "100%", opacity: 0, filter: "blur(10px)" }}
+          initial={{ y: "100%", opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          exit={{ y: "100%", opacity: 0 }}
           transition={{ type: "spring", stiffness: 250, damping: 35 }}
           drag="y"
           dragConstraints={{ top: 0, bottom: 0 }}
@@ -227,28 +215,17 @@ export default function FullPlayer() {
           {/* Immersive Background */}
           {currentTrack.thumbnail && (
             <>
-              {/* Massive colored blurred blobs - Fixed to be super visible */}
-              <motion.div 
-                animate={{ 
-                  scale: isPlaying ? [1.2, 1.3, 1.25, 1.2] : 1.2,
-                  rotate: isPlaying ? [0, 5, -3, 0] : 0,
-                  opacity: isPlaying ? 0.8 : 0.3
-                }}
-                transition={{ 
-                  scale: { duration: 15, repeat: Infinity, ease: "easeInOut" },
-                  rotate: { duration: 15, repeat: Infinity, ease: "easeInOut" },
-                  opacity: { duration: 0.8, ease: "easeInOut" }
-                }}
-                className="absolute -inset-20 pointer-events-none"
+              {/* Static color wash: same atmosphere without continuous GPU animation. */}
+              <div
+                className="absolute -inset-10 pointer-events-none opacity-55"
                 style={{
                   backgroundImage: `url('${currentTrack.thumbnail}')`,
-                  backgroundSize: '150%',
+                  backgroundSize: 'cover',
                   backgroundPosition: 'center',
-                  filter: 'blur(90px) saturate(2.5) brightness(0.8)'
+                  filter: 'blur(42px) saturate(1.65) brightness(0.65)',
+                  transform: 'scale(1.12)'
                 }}
               />
-              {/* Noise overlay for texture */}
-              <div className="absolute inset-0 opacity-[0.06] pointer-events-none mix-blend-overlay" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=%220 0 200 200%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter id=%22noiseFilter%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.65%22 numOctaves=%223%22 stitchTiles=%22stitch%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23noiseFilter)%22/%3E%3C/svg%3E")' }} />
               {/* Vignette */}
               <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_0%,rgba(5,5,5,0.95)_100%)] pointer-events-none" />
               <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-[#050505] via-[#050505]/80 to-transparent pointer-events-none" />
@@ -271,11 +248,7 @@ export default function FullPlayer() {
                 Now Playing
               </span>
               <div className="h-1 w-8 rounded-full bg-white/20">
-                 <motion.div 
-                   layoutId="nowPlayingPill"
-                   className="h-full bg-white rounded-full shadow-[0_0_8px_rgba(255,255,255,0.8)]"
-                   style={{ width: `${progressPercent}%` }}
-                 />
+                <ProgressPill />
               </div>
             </div>
             <button 
@@ -287,7 +260,7 @@ export default function FullPlayer() {
           </div>
 
           {/* Main Content Area (Artwork or Lyrics) */}
-          <div className="relative z-10 flex-1 flex flex-col justify-center items-center w-full" style={{ perspective: 1200 }}>
+          <div className="relative z-10 flex-1 min-h-0 flex flex-col justify-center items-center w-full" style={{ perspective: 1200 }}>
             <AnimatePresence mode="wait">
               {!isMicActive ? (
                 <motion.div 
@@ -295,18 +268,16 @@ export default function FullPlayer() {
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.9 }}
-                  className="w-full flex-1 flex flex-col justify-center items-center px-8 min-h-0 py-4"
+                  className="w-full flex-1 flex flex-col justify-center items-center px-8 min-h-0 py-2"
                 >
                   {/* Liquid Glass Artwork Container */}
-                  <div className="w-full max-w-[min(340px,42vh)] aspect-square rounded-[2.5rem] p-3 shadow-[0_30px_80px_-20px_rgba(0,0,0,1)] relative group mb-6 shrink-0">
+                  <div className="w-full max-w-[min(330px,38dvh)] aspect-square rounded-[2.5rem] p-2.5 shadow-[0_24px_60px_-24px_rgba(0,0,0,1)] relative group mb-4 shrink-0">
                     {/* Glowing Fallback Gradient (visible if shader fails or is dark) */}
                     <div className="absolute inset-0 rounded-[2.5rem] bg-gradient-to-br from-white/20 via-white/5 to-white/10 opacity-60 mix-blend-overlay" />
                     <div className="absolute inset-0 rounded-[2.5rem] bg-gradient-to-tr from-white/10 to-transparent opacity-30" />
                     
-                    {/* Liquid Metal Shader Background */}
+                    {/* Lightweight metallic frame */}
                     <div
-                      ref={shaderRef}
-                      className="shader-container-fullplayer"
                       style={{
                         position: "absolute",
                         top: 0,
@@ -315,9 +286,9 @@ export default function FullPlayer() {
                         bottom: 0,
                         borderRadius: "2.5rem",
                         overflow: "hidden",
-                        opacity: 0.85,
+                        opacity: 0.9,
                         zIndex: 0,
-                        background: "linear-gradient(135deg, rgba(40,40,40,0.8) 0%, rgba(10,10,10,0.9) 100%)",
+                        background: "linear-gradient(135deg, rgba(255,255,255,0.28) 0%, rgba(35,35,35,0.88) 38%, rgba(8,8,8,0.96) 72%, rgba(255,255,255,0.16) 100%)",
                         boxShadow: "inset 0 2px 10px rgba(255,255,255,0.15)"
                       }}
                     />
@@ -345,8 +316,7 @@ export default function FullPlayer() {
                           <img 
                             src={currentTrack.thumbnail} 
                             alt={currentTrack.title} 
-                            className="w-full h-full object-cover transition-transform duration-[20s] ease-linear"
-                            style={{ transform: isPlaying ? 'scale(1.05)' : 'scale(1)' }}
+                            className="w-full h-full object-cover"
                           />
                           {/* Glass Reflection on Artwork */}
                           <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/10 to-transparent pointer-events-none mix-blend-overlay" />
@@ -417,49 +387,10 @@ export default function FullPlayer() {
 
           {/* Liquid Controls */}
           <div 
-            className="relative z-20 flex flex-col safe-pb w-full max-w-[400px] mx-auto px-6 mt-2 shrink-0"
+            className="relative z-20 flex flex-col safe-pb w-full max-w-[400px] mx-auto px-6 pt-1 shrink-0"
             onPointerDown={(e) => e.stopPropagation()}
           >
-            {/* Smooth Glowing Liquid Progress Bar */}
-            <div className="w-full flex flex-col items-center gap-1 mb-8 group">
-              <div className="w-full relative h-8 flex items-center cursor-pointer">
-                {/* Track Background */}
-                <div className="absolute left-0 right-0 h-2.5 rounded-full bg-black/50 border border-white/5 shadow-inner overflow-hidden backdrop-blur-xl pointer-events-none">
-                   {/* Liquid Glowing Fill */}
-                   <motion.div 
-                     className="absolute top-0 left-0 bottom-0 rounded-full shadow-[0_0_15px_rgba(255,255,255,0.8)] pointer-events-none" 
-                     style={{ width: `${progressPercent}%`, background: 'linear-gradient(90deg, rgba(255,255,255,0.4) 0%, rgba(255,255,255,1) 100%)' }} 
-                   >
-                     <div className="absolute right-0 top-1/2 -translate-y-1/2 w-2 h-2 bg-white rounded-full blur-[1px] shadow-[0_0_8px_rgba(255,255,255,1)]" />
-                   </motion.div>
-                </div>
-                
-                {/* Thumb/Dot for clear scrubbing feel */}
-                <motion.div
-                  className="absolute h-[14px] w-[14px] bg-white rounded-full shadow-[0_0_15px_rgba(255,255,255,1)] pointer-events-none transition-transform scale-100 group-active:scale-125 z-20"
-                  style={{ left: `calc(${progressPercent}% - 7px)` }}
-                />
-
-                {/* Range Input for Smooth Sliding */}
-                <input 
-                  type="range"
-                  min={0}
-                  max={duration}
-                  step={0.1}
-                  value={progress}
-                  onChange={(e) => {
-                    const val = Number(e.target.value);
-                    setProgress(val);
-                    seekTo(val);
-                  }}
-                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer touch-none z-30"
-                />
-              </div>
-              <div className="w-full flex justify-between text-xs font-medium text-white/50 tracking-wider px-1 mt-0">
-                <span>{formatTime(Math.floor(progress))}</span>
-                <span>{formatTime(Math.floor(duration))}</span>
-              </div>
-            </div>
+            <PlaybackProgress />
 
             {/* Glassmorphic Controls */}
             <div className="flex items-center justify-center gap-4 sm:gap-5 w-full mb-6">

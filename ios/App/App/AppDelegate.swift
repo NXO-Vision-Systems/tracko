@@ -1,5 +1,6 @@
 import UIKit
 import Capacitor
+import AVFoundation
 
 @UIApplicationMain
 class AppDelegate: UIResponder, UIApplicationDelegate {
@@ -7,8 +8,25 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     var window: UIWindow?
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
-        // Override point for customization after application launch.
+        configureBackgroundAudio()
         return true
+    }
+
+    private func configureBackgroundAudio() {
+        let audioSession = AVAudioSession.sharedInstance()
+
+        do {
+            // The playback category keeps media alive when the device locks and
+            // correctly hands audio to headphones, Bluetooth, and AirPlay.
+            try audioSession.setCategory(
+                .playback,
+                mode: .default,
+                options: [.allowAirPlay]
+            )
+            try audioSession.setActive(true)
+        } catch {
+            print("[Tracko] Unable to configure background audio: \(error)")
+        }
     }
 
     func applicationWillResignActive(_ application: UIApplication) {
@@ -26,7 +44,8 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     }
 
     func applicationDidBecomeActive(_ application: UIApplication) {
-        // Restart any tasks that were paused (or not yet started) while the application was inactive. If the application was previously in the background, optionally refresh the user interface.
+        // Re-activate after phone calls, Siri, and other audio interruptions.
+        try? AVAudioSession.sharedInstance().setActive(true)
     }
 
     func applicationWillTerminate(_ application: UIApplication) {

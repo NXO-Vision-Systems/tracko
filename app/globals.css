@@ -15,8 +15,6 @@ html, body {
     -webkit-overflow-scrolling: touch;
     -ms-overflow-style: none;
     scrollbar-width: none;
-    transform: translate3d(0, 0, 0);
-    will-change: transform;
   }
 
   .scroll-content::-webkit-scrollbar {
@@ -88,9 +86,9 @@ html, body {
 
 /* Universal safe-area bottom padding */
 .safe-pb {
-  padding-bottom: calc(1.5rem + env(safe-area-inset-bottom));
+  padding-bottom: calc(2.75rem + env(safe-area-inset-bottom));
 }
 
 .in-simulator .safe-pb {
-  padding-bottom: calc(1.5rem + 34px) !important;
+  padding-bottom: calc(2.75rem + 34px) !important;
 }
