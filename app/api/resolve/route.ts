@@ -1,6 +1,14 @@
 import { NextResponse } from "next/server";
 import { searchYouTube } from "@/lib/youtube";
-import ytdl from "@distube/ytdl-core";
+
+export const dynamic = "force-dynamic";
+
+// Redirect cache directory to /tmp on Vercel to avoid EROFS error
+process.env.YTDL_NO_DEBUG_FILE = "true";
+if (process.env.NODE_ENV === "production" || !process.env.HOME) {
+  process.env.HOME = "/tmp";
+}
+const ytdl = require("@distube/ytdl-core");
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -30,8 +38,8 @@ export async function GET(request: Request) {
         const proxyUrl = `/api/stream?url=${encodeURIComponent(format.url)}`;
         return NextResponse.json({ url: proxyUrl });
       }
-    } catch (ytdlError) {
-      console.warn("ytdl-core resolution failed, falling back to YouTube watch URL:", ytdlError);
+    } catch (ytdlError: any) {
+      console.warn("ytdl-core resolution failed, falling back to YouTube watch URL:", ytdlError.stack || ytdlError);
     }
 
     // Fallback to watch URL

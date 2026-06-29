@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState, type SyntheticEvent } from "react";
-import ReactPlayer from "react-player";
 import { usePlayerStore } from "@/store/usePlayerStore";
 import { getApiUrl } from "@/lib/api";
 
@@ -21,7 +20,7 @@ export default function AudioEngine() {
 
   const [resolvedUrl, setResolvedUrl] = useState<string | null>(null);
   const [isResolving, setIsResolving] = useState(false);
-  const playerRef = useRef<HTMLVideoElement | null>(null);
+  const playerRef = useRef<HTMLAudioElement | null>(null);
 
   // Sync resolved URL when track changes
   useEffect(() => {
@@ -65,8 +64,30 @@ export default function AudioEngine() {
     resolveTrack();
   }, [currentTrack, playTrack, playNext, setIsPlaying]);
 
-  // Handle manual Seek from the global store.
-  // In react-player v3 the ref IS the underlying media element.
+  // Handle Play/Pause sync
+  useEffect(() => {
+    const audio = playerRef.current;
+    if (!audio || !resolvedUrl) return;
+
+    if (isPlaying && !isResolving) {
+      audio.play().catch((err) => {
+        if (err.name !== "AbortError" && err.name !== "NotAllowedError") {
+          console.error("Playback failed:", err);
+        }
+      });
+    } else {
+      audio.pause();
+    }
+  }, [isPlaying, isResolving, resolvedUrl]);
+
+  // Handle Volume sync
+  useEffect(() => {
+    if (playerRef.current) {
+      playerRef.current.volume = volume;
+    }
+  }, [volume]);
+
+  // Handle manual Seek from the global store
   useEffect(() => {
     if (seekProgress !== null && playerRef.current) {
       try {
@@ -81,7 +102,34 @@ export default function AudioEngine() {
   if (!resolvedUrl) return null;
 
   return (
-    <div
+    <audio
+      ref={playerRef}
+      src={resolvedUrl}
+      onTimeUpdate={(e: SyntheticEvent<HTMLAudioElement>) => {
+        setProgress(e.currentTarget.currentTime);
+      }}
+      onDurationChange={(e: SyntheticEvent<HTMLAudioElement>) => {
+        const d = e.currentTarget.duration;
+        if (d > 0 && isFinite(d)) setDuration(d);
+      }}
+      onEnded={() => playNext()}
+      onError={(e) => {
+        const error = e.currentTarget.error;
+        if (!error) return;
+        
+        const isHarmless =
+          error.code === error.MEDIA_ERR_ABORTED;
+
+        if (isHarmless) {
+          console.warn("Audio element: playback aborted (harmless).");
+          return;
+        }
+
+        console.error("Audio element error:", error.message || error.code);
+        setIsPlaying(false);
+        playNext();
+      }}
+      preload="auto"
       style={{
         position: "fixed",
         bottom: 0,
@@ -91,55 +139,7 @@ export default function AudioEngine() {
         opacity: 0,
         pointerEvents: "none",
         zIndex: -1,
-        overflow: "hidden",
       }}
-      aria-hidden="true"
-    >
-      <ReactPlayer
-        ref={playerRef}
-        src={resolvedUrl}
-        playing={isPlaying && !isResolving}
-        volume={volume}
-        config={{
-          file: {
-            forceAudio: true,
-            attributes: {
-              preload: "auto",
-            },
-          },
-        }}
-        onTimeUpdate={(e: SyntheticEvent<HTMLVideoElement>) => {
-          setProgress(e.currentTarget.currentTime);
-        }}
-        onDurationChange={(e: SyntheticEvent<HTMLVideoElement>) => {
-          const d = e.currentTarget.duration;
-          if (d > 0 && isFinite(d)) setDuration(d);
-        }}
-        onEnded={() => playNext()}
-        onError={(error: any) => {
-          const msg = String(error?.message || error || "");
-          const isHarmless =
-            error?.name === "AbortError" ||
-            error?.name === "NotAllowedError" ||
-            msg.includes("AbortError") ||
-            msg.includes("interrupted by a call to pause") ||
-            msg.includes("user didn't interact") ||
-            msg.includes("user gesture") ||
-            msg.includes("play()");
-
-          if (isHarmless) {
-            console.warn("ReactPlayer: playback blocked/interrupted (harmless).");
-            return;
-          }
-
-          console.error("ReactPlayer fatal error:", error);
-          setIsPlaying(false);
-          playNext();
-        }}
-        width="1px"
-        height="1px"
-        playsInline
-      />
-    </div>
+    />
   );
 }
